@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LeadMapper — Google Maps Lead Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0f14;--bg2:#13161e;--bg3:#1a1e28;--bg4:rgba(32,37,51,.5);
+  --b1:rgba(255,255,255,.07);--b2:rgba(255,255,255,.13);
+  --t1:#f0f2f7;--t2:#8892a4;--t3:#4a5468;
+  --accent:#6c63ff;--a2:#9c95ff;--aglow:rgba(108,99,255,.18);
+  --hi:#ff5c7a;--hi-bg:rgba(255,92,122,.1);--hi-br:rgba(255,92,122,.3);
+  --me:#f59e0b;--me-bg:rgba(245,158,11,.1);--me-br:rgba(245,158,11,.3);
+  --lo:#10b981;--lo-bg:rgba(16,185,129,.1);--lo-br:rgba(16,185,129,.3);
+  --info:#38bdf8;
+  --r:10px;--r2:16px;--sh:0 4px 32px rgba(0,0,0,.5);
+  --tr:all .18s cubic-bezier(.4,0,.2,1);
+}
+[data-theme="light"]{
+  --bg:#f4f5f9;--bg2:#fff;--bg3:#eef0f5;--bg4:rgba(238,240,245,.7);
+  --b1:rgba(0,0,0,.07);--b2:rgba(0,0,0,.13);
+  --t1:#111827;--t2:#4b5563;--t3:#9ca3af;
+  --accent:#5046e5;--a2:#7c75f0;--aglow:rgba(80,70,229,.1);
+  --hi:#e11d48;--hi-bg:rgba(225,29,72,.07);--hi-br:rgba(225,29,72,.2);
+  --me:#d97706;--me-bg:rgba(217,119,6,.07);--me-br:rgba(217,119,6,.2);
+  --lo:#059669;--lo-bg:rgba(5,150,105,.07);--lo-br:rgba(5,150,105,.2);
+  --sh:0 4px 32px rgba(0,0,0,.08);
+}
+body{background:var(--bg);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:14px;min-height:100vh;transition:background .2s,color .2s}
+h1,h2,h3{font-family:'Syne',sans-serif}
+
+/* ── Topbar ── */
+.topbar{position:sticky;top:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--b1);height:58px;display:flex;align-items:center;padding:0 24px;gap:16px;backdrop-filter:blur(12px)}
+.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--info));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.5px;flex:1}
+.logo span{font-weight:700;opacity:.55}
+.icon-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--tr);flex-shrink:0}
+.icon-btn:hover{background:var(--bg3);color:var(--t1);border-color:var(--b2)}
+.icon-btn svg{pointer-events:none}
+
+/* ── Layout ── */
+.main{max-width:1380px;margin:0 auto;padding:24px}
+
+/* ── Search Panel ── */
+.search-panel{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);padding:28px;margin-bottom:22px}
+.panel-title{font-size:22px;font-weight:800;margin-bottom:3px}
+.panel-sub{color:var(--t2);font-size:13px;margin-bottom:22px}
+.search-row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+@media(max-width:600px){.search-row{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;font-weight:500;color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
+.input-wrap{position:relative}
+.input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none}
+input[type=text]{width:100%;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px 10px 38px;color:var(--t1);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:var(--tr)}
+input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--aglow)}
+input[type=text]::placeholder{color:var(--t3)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:var(--r);border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:var(--tr);white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 8px 24px rgba(108,99,255,.35)}
+.btn-primary:active{transform:none}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-outline{background:transparent;color:var(--t1);border:1px solid var(--b2)}
+.btn-outline:hover{background:var(--bg3)}
+.btn-sm{padding:6px 13px;font-size:12px}
+
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);padding:16px 20px}
+.stat-label{font-size:11px;font-weight:500;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+.stat-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1}
+.stat-val.c-accent{color:var(--a2)}
+.stat-val.c-hi{color:var(--hi)}
+.stat-val.c-me{color:var(--me)}
+.stat-val.c-lo{color:var(--lo)}
+.stat-sub{font-size:11px;color:var(--t3);margin-top:4px}
+
+/* ── Filter bar ── */
+.filter-bar{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);padding:14px 18px;margin-bottom:18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.fl{font-size:12px;font-weight:500;color:var(--t2);white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:100px;border:1px solid var(--b1);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);color:var(--t2)}
+.chip:hover{border-color:var(--b2);color:var(--t1)}
+.chip.on-hi{background:var(--hi-bg);border-color:var(--hi-br);color:var(--hi)}
+.chip.on-me{background:var(--me-bg);border-color:var(--me-br);color:var(--me)}
+.chip.on-lo{background:var(--lo-bg);border-color:var(--lo-br);color:var(--lo)}
+.chip.on-nw{background:var(--hi-bg);border-color:var(--hi-br);color:var(--hi)}
+select{background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:6px 10px;color:var(--t1);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer}
+select:focus{border-color:var(--accent)}
+.search-f{flex:1;min-width:160px}
+.search-f input{padding-left:36px}
+.ml-auto{margin-left:auto;display:flex;gap:8px}
+
+/* ── Table ── */
+.table-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r2);overflow:hidden}
+.table-top{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.table-count{font-size:13px;color:var(--t2)}
+.table-count strong{color:var(--t1)}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;min-width:860px}
+thead th{padding:11px 15px;text-align:left;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--b1);background:var(--bg3);cursor:pointer;white-space:nowrap;user-select:none}
+thead th:hover{color:var(--t2)}
+tbody tr{border-bottom:1px solid var(--b1);transition:var(--tr);cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg4)}
+td{padding:13px 15px;vertical-align:middle}
+.biz-name{font-weight:500;font-size:14px}
+.biz-addr{font-size:12px;color:var(--t2);margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;border:1px solid}
+.badge-hi{background:var(--hi-bg);border-color:var(--hi-br);color:var(--hi)}
+.badge-me{background:var(--me-bg);border-color:var(--me-br);color:var(--me)}
+.badge-lo{background:var(--lo-bg);border-color:var(--lo-br);color:var(--lo)}
+.score-bar{width:56px;height:5px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-top:4px}
+.score-fill{height:100%;border-radius:99px}
+.site-link{font-size:12px;color:var(--a2);text-decoration:none}
+.site-link:hover{text-decoration:underline}
+.no-site{font-size:12px;color:var(--t3)}
+.plat-tag{font-size:11px;background:var(--me-bg);border:1px solid var(--me-br);color:var(--me);padding:2px 7px;border-radius:4px;display:inline-block;margin-top:2px}
+.stars{color:#f59e0b;font-size:12px}
+.hi-row{position:relative}
+.hi-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--hi);border-radius:0 2px 2px 0}
+
+/* ── Empty state ── */
+.empty{padding:80px 20px;text-align:center}
+.empty-ico{font-size:52px;opacity:.25;margin-bottom:14px}
+.empty-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--t2)}
+
+/* ── Loading overlay ── */
+.loading{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;backdrop-filter:blur(8px)}
+.spinner{width:46px;height:46px;border:3px solid var(--b2);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--t2)}
+.prog-track{width:220px;height:4px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--info));border-radius:99px;transition:width .3s}
+.load-pct{font-size:12px;color:var(--t3)}
+
+/* ── Drawer ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;backdrop-filter:blur(4px);animation:fIn .2s}
+@keyframes fIn{from{opacity:0}to{opacity:1}}
+.drawer{position:fixed;right:0;top:0;bottom:0;width:min(460px,100%);background:var(--bg2);border-left:1px solid var(--b1);overflow-y:auto;z-index:301;animation:sIn .25s cubic-bezier(.4,0,.2,1)}
+@keyframes sIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.dh{padding:22px;border-bottom:1px solid var(--b1);position:sticky;top:0;background:var(--bg2);z-index:1;display:flex;justify-content:space-between;align-items:flex-start}
+.dh-name{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:7px}
+.db{padding:22px}
+.ds{margin-bottom:22px}
+.ds-title{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:11px}
+.ir{display:flex;gap:11px;padding:9px 0;border-bottom:1px solid var(--b1);align-items:flex-start}
+.ir:last-child{border-bottom:none}
+.ir-key{font-size:12px;color:var(--t2);width:85px;flex-shrink:0}
+.ir-val{font-size:13px;color:var(--t1)}
+.score-ring-wrap{display:flex;flex-direction:column;align-items:center;padding:18px;background:var(--bg3);border-radius:var(--r2);margin-bottom:14px}
+.score-ring-lbl{font-size:12px;color:var(--t2);margin-top:8px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.check{display:flex;align-items:center;gap:8px;font-size:12px;padding:8px 12px;background:var(--bg3);border-radius:8px}
+.issue-pip{display:inline-flex;align-items:center;padding:2px 7px;background:var(--hi-bg);border-radius:4px;font-size:11px;color:var(--hi);margin:2px}
+.rev-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--aglow);border:1px solid rgba(108,99,255,.25);border-radius:100px;font-size:14px;font-weight:600;color:var(--a2)}
+.script-box{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:14px;font-size:13px;line-height:1.65;color:var(--t2);white-space:pre-wrap;word-break:break-word;position:relative}
+.script-box .copy-btn{position:absolute;top:8px;right:8px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--bg2);border:1px solid var(--b2);border-radius:var(--r);padding:11px 18px;font-size:13px;box-shadow:var(--sh);z-index:600;display:flex;align-items:center;gap:9px;animation:tIn .25s ease;pointer-events:none}
+@keyframes tIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
+
+.fade-row{animation:rowIn .28s ease both}
+@keyframes rowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ───────────────────────────────────────────────────────── -->
+<nav class="topbar">
+  <div class="logo">Lead<span>Mapper</span></div>
+  <button class="icon-btn" id="themeBtn" title="Toggle theme">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="themeIco" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+</nav>
+
+<!-- ── MAIN ─────────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Search -->
+  <div class="search-panel">
+    <div class="panel-title">🗺️ Google Maps Lead Generator</div>
+    <div class="panel-sub">Find local businesses that need a website — or have a poor one</div>
+    <div class="search-row">
+      <div class="field">
+        <label>Business Keyword</label>
+        <div class="input-wrap">
+          <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+          <input type="text" id="keyword" placeholder="restaurants, salons, clinics…" value="restaurants"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>City / Location</label>
+        <div class="input-wrap">
+          <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg></span>
+          <input type="text" id="location" placeholder="Lucknow, Mumbai, Delhi…" value="Lucknow"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="scrapeBtn" onclick="startScrape()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Find Leads
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats (hidden until data loads) -->
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="stat-label">Total Leads</div><div class="stat-val c-accent" id="s-total">0</div><div class="stat-sub" id="s-kw">—</div></div>
+    <div class="stat"><div class="stat-label">🔥 High Priority</div><div class="stat-val c-hi" id="s-hi">0</div><div class="stat-sub">No / poor website</div></div>
+    <div class="stat"><div class="stat-label">⚡ Medium</div><div class="stat-val c-me" id="s-me">0</div><div class="stat-sub">Average website</div></div>
+    <div class="stat"><div class="stat-label">🚫 No Website</div><div class="stat-val c-hi" id="s-nw">0</div><div class="stat-sub">Direct opportunity</div></div>
+  </div>
+
+  <!-- Filter bar (hidden until data loads) -->
+  <div class="filter-bar" id="filterBar" style="display:none">
+    <span class="fl">Priority:</span>
+    <span class="chip on-hi" id="chip-HIGH"   onclick="toggleChip('HIGH')">🔥 HIGH</span>
+    <span class="chip on-me" id="chip-MEDIUM" onclick="toggleChip('MEDIUM')">⚡ MEDIUM</span>
+    <span class="chip on-lo" id="chip-LOW"    onclick="toggleChip('LOW')">✅ LOW</span>
+    <div style="width:1px;height:22px;background:var(--b1);margin:0 2px"></div>
+    <span class="chip" id="chip-noWeb" onclick="toggleNoWeb()">🚫 No Website</span>
+    <div class="field" style="flex-direction:row;align-items:center;gap:6px">
+      <span class="fl">Rating:</span>
+      <select id="ratingFilter" onchange="renderTable()">
+        <option value="0">All</option><option value="3">3+</option>
+        <option value="3.5">3.5+</option><option value="4">4+</option><option value="4.5">4.5+</option>
+      </select>
+    </div>
+    <div class="search-f input-wrap">
+      <span class="input-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+      <input type="text" id="searchFilter" placeholder="Search name, address…" oninput="renderTable()"/>
+    </div>
+    <div class="ml-auto">
+      <button class="btn btn-outline btn-sm" onclick="doExport('csv')">⬇ CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="doExport('xlsx')">⬇ Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="doExport('json')">⬇ JSON</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap" id="tableWrap">
+    <div class="empty">
+      <div class="empty-ico">🗺️</div>
+      <div class="empty-title">Ready to find leads</div>
+      <div class="empty-sub">Enter a keyword and city above, then click Find Leads</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── LOADING OVERLAY ──────────────────────────────────────────────── -->
+<div class="loading" id="loadingOverlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="load-text" id="loadText">Connecting…</div>
+  <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  <div class="load-pct" id="loadPct">0%</div>
+</div>
+
+<!-- ── DETAIL DRAWER ────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay" style="display:none" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer" style="display:none"></div>
+
+<!-- ── TOAST ────────────────────────────────────────────────────────── -->
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────
+let allLeads = [];
+let currentJobId = null;
+let sortField = 'leadScore';
+let sortDir   = 'asc';
+let filters   = { HIGH: true, MEDIUM: true, LOW: true, noWeb: false };
+let toastTimer;
+
+// ── Theme ─────────────────────────────────────────────────────────────
+const MOON = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
+const SUN  = "M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10z";
+let dark = true;
+document.getElementById('themeBtn').onclick = () => {
+  dark = !dark;
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.getElementById('themeIco').setAttribute('d', dark ? MOON : SUN);
+};
+
+// ── Toast ─────────────────────────────────────────────────────────────
+function toast(msg, ico = '✓') {
+  const el = document.getElementById('toast');
+  el.innerHTML = `<span>${ico}</span> ${msg}`;
+  el.style.display = 'flex';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.style.display = 'none', 2600);
+}
+
+// ── Filters ───────────────────────────────────────────────────────────
+function toggleChip(score) {
+  filters[score] = !filters[score];
+  const chip = document.getElementById('chip-' + score);
+  const cls  = score === 'HIGH' ? 'on-hi' : score === 'MEDIUM' ? 'on-me' : 'on-lo';
+  chip.classList.toggle(cls, filters[score]);
+  if (!filters[score]) chip.classList.add('chip');
+  renderTable();
+}
+function toggleNoWeb() {
+  filters.noWeb = !filters.noWeb;
+  document.getElementById('chip-noWeb').classList.toggle('on-nw', filters.noWeb);
+  renderTable();
+}
+
+// ── Score color ───────────────────────────────────────────────────────
+function scoreColor(s) {
+  return s >= 65 ? 'var(--lo)' : s >= 35 ? 'var(--me)' : 'var(--hi)';
+}
+
+// ── Scrape ────────────────────────────────────────────────────────────
+async function startScrape() {
+  const keyword  = document.getElementById('keyword').value.trim();
+  const location = document.getElementById('location').value.trim();
+  if (!keyword || !location) return toast('Enter keyword and city first', '⚠️');
+
+  allLeads = [];
+  currentJobId = null;
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('stats').style.display = 'none';
+  document.getElementById('filterBar').style.display = 'none';
+  document.getElementById('scrapeBtn').disabled = true;
+  setProgress(3, 'Starting scrape job…');
+
+  try {
+    const r = await fetch('/api/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword, location, limit: 30 }),
+    });
+    const { jobId, error } = await r.json();
+    if (error) throw new Error(error);
+    currentJobId = jobId;
+    listenSSE(jobId, keyword, location);
+  } catch (e) {
+    endLoading();
+    toast('Error: ' + e.message, '❌');
+  }
+}
+
+function listenSSE(jobId, keyword, location) {
+  const es = new EventSource('/api/scrape/stream/' + jobId);
+
+  es.addEventListener('progress', e => {
+    const d = JSON.parse(e.data);
+    setProgress(d.pct || 10, d.step);
+  });
+
+  es.addEventListener('lead', e => {
+    const { lead } = JSON.parse(e.data);
+    allLeads.push(lead);
+    updateStats(keyword, location);
+    renderTable();
+  });
+
+  es.addEventListener('completed', e => {
+    const { leads, total } = JSON.parse(e.data);
+    allLeads = leads;
+    es.close();
+    endLoading();
+    updateStats(keyword, location);
+    renderTable();
+    toast(`Found ${total} leads for "${keyword} in ${location}" 🎯`, '🎯');
+  });
+
+  es.addEventListener('error', e => {
+    let msg = 'Scrape error';
+    try { msg = JSON.parse(e.data).message; } catch {}
+    es.close();
+    endLoading();
+    toast(msg, '❌');
+  });
+
+  es.onerror = () => {
+    if (es.readyState === EventSource.CLOSED) return;
+    es.close();
+    endLoading();
+    toast('Connection lost', '❌');
+  };
+}
+
+function setProgress(pct, text) {
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('loadPct').textContent = pct + '%';
+  document.getElementById('loadText').textContent = text;
+}
+
+function endLoading() {
+  document.getElementById('loadingOverlay').style.display = 'none';
+  document.getElementById('scrapeBtn').disabled = false;
+  document.getElementById('stats').style.display = 'grid';
+  document.getElementById('filterBar').style.display = 'flex';
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────
+function updateStats(kw, loc) {
+  document.getElementById('s-total').textContent = allLeads.length;
+  document.getElementById('s-hi').textContent    = allLeads.filter(l => l.leadScore === 'HIGH').length;
+  document.getElementById('s-me').textContent    = allLeads.filter(l => l.leadScore === 'MEDIUM').length;
+  document.getElementById('s-nw').textContent    = allLeads.filter(l => !l.hasWebsite).length;
+  document.getElementById('s-kw').textContent    = kw + ' in ' + loc;
+}
+
+// ── Table ─────────────────────────────────────────────────────────────
+function getFiltered() {
+  const search = (document.getElementById('searchFilter')?.value || '').toLowerCase();
+  const minRating = parseFloat(document.getElementById('ratingFilter')?.value || '0');
+  const scoreOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+
+  return allLeads
+    .filter(l => {
+      if (!filters[l.leadScore]) return false;
+      if (filters.noWeb && l.hasWebsite) return false;
+      if (minRating > 0 && l.rating < minRating) return false;
+      if (search && !l.name.toLowerCase().includes(search) &&
+          !l.address.toLowerCase().includes(search) &&
+          !l.category.toLowerCase().includes(search)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'leadScore') cmp = scoreOrder[a.leadScore] - scoreOrder[b.leadScore];
+      else if (sortField === 'rating') cmp = b.rating - a.rating;
+      else if (sortField === 'websiteScore') cmp = a.websiteScore - b.websiteScore;
+      else if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+}
+
+function renderTable() {
+  const rows = getFiltered();
+  const wrap = document.getElementById('tableWrap');
+
+  if (rows.length === 0 && allLeads.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-ico">🗺️</div><div class="empty-title">Ready to find leads</div><div class="empty-sub">Enter a keyword and city above, then click Find Leads</div></div>`;
+    return;
+  }
+  if (rows.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-ico">🔍</div><div class="empty-title">No matches</div><div class="empty-sub">Try adjusting your filters</div></div>`;
+    return;
+  }
+
+  const si = (f, lbl) => {
+    const arrow = sortField === f ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕';
+    return `<th onclick="setSort('${f}')">${lbl}<span style="opacity:.4">${arrow}</span></th>`;
+  };
+
+  let html = `
+    <div class="table-top">
+      <div class="table-count">Showing <strong>${rows.length}</strong> of ${allLeads.length} leads <span style="opacity:.5">· click a row for details</span></div>
+    </div>
+    <div class="table-scroll"><table>
+    <thead><tr>
+      ${si('name','Business')}
+      <th>Phone</th>
+      <th>Website</th>
+      ${si('websiteScore','Score')}
+      ${si('rating','Rating')}
+      ${si('leadScore','Priority')}
+      <th>Revenue Opp.</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach((l, i) => {
+    const sc = l.websiteScore;
+    const badgeCls = l.leadScore === 'HIGH' ? 'badge-hi' : l.leadScore === 'MEDIUM' ? 'badge-me' : 'badge-lo';
+    const badgeIco = l.leadScore === 'HIGH' ? '🔥' : l.leadScore === 'MEDIUM' ? '⚡' : '✅';
+    const rowCls   = l.leadScore === 'HIGH' ? 'hi-row fade-row' : 'fade-row';
+    const addrShort = l.address.split(',').slice(1, 3).join(',').trim();
+
+    html += `<tr class="${rowCls}" style="animation-delay:${i * 18}ms" onclick="openDrawer(${i})">
+      <td><div class="biz-name">${l.name}</div><div class="biz-addr">📍 ${addrShort}</div></td>
+      <td style="font-size:13px;color:var(--t2)">${l.phone || '—'}</td>
+      <td>${l.website
+        ? `<a class="site-link" href="${l.website}" target="_blank" onclick="event.stopPropagation()">🔗 ${l.website.replace('https://www.','').replace('https://','').slice(0,28)}</a>`
+        : `<span class="no-site">❌ No website</span>`
+      }${l.platformOnly ? `<div><span class="plat-tag">via ${l.platformOnly}</span></div>` : ''}</td>
+      <td>${l.hasWebsite
+        ? `<span style="font-size:13px;font-weight:600;color:${scoreColor(sc)}">${sc}</span>
+           <div class="score-bar"><div class="score-fill" style="width:${sc}%;background:${scoreColor(sc)}"></div></div>`
+        : `<span style="color:var(--t3);font-size:12px">N/A</span>`
+      }</td>
+      <td><div class="stars">${'★'.repeat(Math.round(l.rating))}</div><div style="font-size:12px;color:var(--t2)">${l.rating} (${(l.reviews||0).toLocaleString()})</div></td>
+      <td><span class="badge ${badgeCls}">${badgeIco} ${l.leadScore}</span></td>
+      <td style="font-size:13px;font-weight:600;color:var(--a2)">${l.revenueOpportunity || '—'}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  wrap.innerHTML = html;
+}
+
+function setSort(field) {
+  if (sortField === field) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortField = field; sortDir = 'asc'; }
+  renderTable();
+}
+
+// ── Drawer ────────────────────────────────────────────────────────────
+const filtered = () => getFiltered();
+
+function openDrawer(idx) {
+  const l = getFiltered()[idx];
+  if (!l) return;
+  const badgeCls = l.leadScore === 'HIGH' ? 'badge-hi' : l.leadScore === 'MEDIUM' ? 'badge-me' : 'badge-lo';
+  const badgeIco = l.leadScore === 'HIGH' ? '🔥' : l.leadScore === 'MEDIUM' ? '⚡' : '✅';
+  const sc = l.websiteScore;
+
+  const checksHtml = l.hasWebsite ? `
+    <div class="score-ring-wrap">
+      ${scoreRingSVG(sc)}
+      <div class="score-ring-lbl">Website Score (out of 100)</div>
+    </div>
+    <div class="checks">
+      <div class="check">${l.ssl
+        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lo)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3"/></svg><span style="color:var(--lo)">SSL ✓</span>`
+        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--hi)" stroke-width="2"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM15 9l-6 6M9 9l6 6"/></svg><span style="color:var(--hi)">No SSL</span>`}
+      </div>
+      <div class="check">${l.mobileFriendly
+        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lo)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3"/></svg><span style="color:var(--lo)">Mobile ✓</span>`
+        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--hi)" stroke-width="2"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM15 9l-6 6M9 9l6 6"/></svg><span style="color:var(--hi)">Not Mobile</span>`}
+      </div>
+      <div class="check">${(l.pageSpeed||0) <= 3
+        ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--lo)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3"/></svg><span style="color:var(--lo)">Fast (${l.pageSpeed}s)</span>`
+        : (l.pageSpeed||0) <= 6
+          ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--me)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg><span style="color:var(--me)">Slow (${l.pageSpeed}s)</span>`
+          : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--hi)" stroke-width="2"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM15 9l-6 6M9 9l6 6"/></svg><span style="color:var(--hi)">Very Slow (${l.pageSpeed}s)</span>`}
+      </div>
+      <div class="check"><span style="color:${l.issues.length===0?'var(--lo)':'var(--me)'}">${l.issues.length === 0 ? '✅ No issues' : `⚠️ ${l.issues.length} issues`}</span></div>
+    </div>
+    ${l.issues.length > 0 ? `<div style="margin-top:12px"><div style="font-size:11px;color:var(--t3);margin-bottom:6px">DETECTED ISSUES</div><div style="display:flex;flex-wrap:wrap;gap:3px">${l.issues.map(i=>`<span class="issue-pip">${i}</span>`).join('')}</div></div>` : ''}
+  ` : `<div style="font-size:13px;color:var(--hi);padding:12px;background:var(--hi-bg);border-radius:var(--r);border:1px solid var(--hi-br)">❌ No website found — <strong>HIGH priority lead</strong>${l.platformOnly ? ` (only on ${l.platformOnly})` : ''}</div>`;
+
+  document.getElementById('drawer').innerHTML = `
+    <div class="dh">
+      <div>
+        <div class="dh-name">${l.name}</div>
+        <span class="badge ${badgeCls}">${badgeIco} ${l.leadScore} PRIORITY</span>
+      </div>
+      <button class="icon-btn" onclick="closeDrawer()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="db">
+      <div class="ds">
+        <div class="ds-title">Contact Information</div>
+        <div class="ir"><div class="ir-key">📞 Phone</div><div class="ir-val">${l.phone||'Not found'}</div></div>
+        <div class="ir"><div class="ir-key">📍 Address</div><div class="ir-val" style="font-size:12px">${l.address}</div></div>
+        <div class="ir"><div class="ir-key">🏷️ Category</div><div class="ir-val">${l.category}</div></div>
+        <div class="ir"><div class="ir-key">⭐ Rating</div><div class="ir-val">${'★'.repeat(Math.round(l.rating))} ${l.rating} (${(l.reviews||0).toLocaleString()} reviews)</div></div>
+        <div class="ir"><div class="ir-key">🌐 Website</div><div class="ir-val">${l.website
+          ? `<a href="${l.website}" style="color:var(--a2);font-size:12px" target="_blank">${l.website}</a>`
+          : `<span style="color:var(--hi);font-size:12px">❌ No website</span>`
+        }${l.platformOnly ? `<div><span class="plat-tag" style="margin-top:4px">⚠️ Only on ${l.platformOnly}</span></div>` : ''}</div></div>
+      </div>
+
+      <div class="ds">
+        <div class="ds-title">Website Analysis</div>
+        ${checksHtml}
+      </div>
+
+      <div class="ds">
+        <div class="ds-title">Revenue Opportunity</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="rev-pill">📈 ${l.revenueOpportunity}</div>
+          <span style="font-size:12px;color:var(--t2)">Estimated project value</span>
+        </div>
+      </div>
+
+      <div class="ds">
+        <div class="ds-title">📞 Contact Script</div>
+        <div class="script-box" id="scriptBox">
+          <button class="icon-btn btn-sm copy-btn" onclick="copyScript()" title="Copy script">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>${l.contactScript || 'No script generated'}
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-primary" style="flex:1" onclick="copyScript()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy Script
+        </button>
+        <button class="btn btn-outline" onclick="exportOneLead(${idx})" title="Download this lead">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        </button>
+      </div>
+    </div>`;
+
+  document.getElementById('overlay').style.display = 'block';
+  document.getElementById('drawer').style.display   = 'block';
+  // Store current lead for script copy
+  window._currentLead = l;
+}
+
+function closeDrawer() {
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('drawer').style.display   = 'none';
+}
+
+function copyScript() {
+  const script = window._currentLead?.contactScript || '';
+  navigator.clipboard.writeText(script).then(() => toast('Script copied!', '📋'));
+}
+
+function exportOneLead(idx) {
+  const l = getFiltered()[idx];
+  if (!l) return;
+  const blob = new Blob([JSON.stringify(l, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: l.name.replace(/\s+/g,'_') + '.json' });
+  a.click();
+  toast('Lead exported!', '📥');
+}
+
+// ── Score ring SVG ────────────────────────────────────────────────────
+function scoreRingSVG(score) {
+  const r = 37, size = 90, circ = 2 * Math.PI * r;
+  const fill = (score / 100) * circ;
+  const col  = score >= 65 ? 'var(--lo)' : score >= 35 ? 'var(--me)' : 'var(--hi)';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg)">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--bg3)" stroke-width="7"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="7"
+      stroke-dasharray="${fill.toFixed(1)} ${circ.toFixed(1)}" stroke-linecap="round"/>
+    <text x="${size/2}" y="${size/2+7}" text-anchor="middle" font-size="19" font-weight="700"
+      fill="${col}" style="transform:rotate(90deg) translate(0,-${size}px);transform-origin:${size/2}px ${size/2}px;font-family:'Syne',sans-serif">${score}</text>
+  </svg>`;
+}
+
+// ── Export ────────────────────────────────────────────────────────────
+async function doExport(fmt) {
+  if (!currentJobId) return toast('No data to export yet', '⚠️');
+  const url = `/api/leads/export?jobId=${currentJobId}&format=${fmt}`;
+
+  if (fmt === 'json') {
+    const data = await (await fetch(url)).json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `leads.json` });
+    a.click();
+  } else {
+    // CSV / XLSX — let browser handle the download
+    const a = Object.assign(document.createElement('a'), { href: url, download: `leads.${fmt}` });
+    a.click();
+  }
+  toast(`Exported as ${fmt.toUpperCase()}`, '📥');
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDrawer();
+  if ((e.key === 'Enter') && document.activeElement?.id === 'keyword') startScrape();
+  if ((e.key === 'Enter') && document.activeElement?.id === 'location') startScrape();
+});
+</script>
+</body>
+</html>
